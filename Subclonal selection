@@ -1,0 +1,64 @@
+def tumor_growth(bmax=1, dmax=0.01, mutation_rate=1, Nend=10000):
+    
+    # Step 1: Initialize with one cell and set parameters 
+    pop_size = [1]   # Track population size - is initialized with 1 bc at time=0 you already have 1 cell (this way you dont have to append it in the population later you just append any new cells from division)
+    time = 0
+    time_steps = [time] 
+    cell0 = {'birth': random.uniform(0, bmax), 'death': 0.01, 'mutations':[] }
+
+    cells = [ cell0 ]   #list of dictionaries 
+    mutation_counts = Counter()  # Track mutation occurrences - Counter is a class from the collections module, 
+                                 # it behaves like a dictionary where keys are elements (ie the mutations here) and values are the counts of the elements 
+    
+    # Choose a random cell and determine a random event 
+    while len(cells) < Nend:
+        i = random.randint(0, len(cells) - 1)  # Select a random cell   #-1 bc of 0-indexing in python (ie if len(cells)=5 then if you need to select one of its elements you would need the elements 0,1,2,3,4)
+                                               # random bi and di have already been determined 
+        r = random.uniform(0, bmax + dmax)  # # Choose a random r = Stochastic event selection 
+        bi = cells[i]['birth']
+        di = cells[i]['death']
+
+        if r < bi:  # Cell division
+            new_mutations = np.random.poisson(mutation_rate)  # Mutations per division
+            new_mut_list = [f"m{len(mutation_counts) + j}" for j in range(new_mutations)]
+            
+            # Track mutation frequencies
+            mutation_counts.update(new_mut_list)
+
+            # Inherit birth & death rates with small variation
+            #new_birth = min(max(bi + np.random.normal(0, 0.05), 0), bmax)  # Variation but within limits
+            #new_death = min(max(di + np.random.normal(0, 0.01), 0), dmax)
+            new_birth = bi
+            new_death = 0.1
+
+            #print( "new cell:", new_birth, new_death )
+
+            # Create new cell
+            new_cell = {
+                'mutations': cells[i]['mutations'] + new_mut_list,
+                'birth': new_birth,
+                'death': new_death
+            }
+            cells.append(new_cell)
+
+        elif bi < r < bi + di:  # Cell death
+            cells.pop(i)
+
+       #print( f"Number of cells: {len(cells)}")
+        if len(cells) == 0:
+            print("Tumour dies")
+            break
+
+        # Time update
+        # use numpy exponential instead of this to define tau 
+        tau = np.random.exponential(scale=1.0)
+        time += tau/ (len(cells)*(bmax + dmax) )
+        time_steps.append(time)
+        pop_size.append(len(cells))
+
+    return cells, time_steps, pop_size, mutation_counts
+
+# Run simulation
+cells, time_steps, pop_size, mutation_counts = tumor_growth(Nend=50000)
+
+print(mutation_counts)
